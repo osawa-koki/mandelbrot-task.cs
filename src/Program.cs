@@ -86,19 +86,16 @@ internal static class Program
 
       var image = new Image<Rgba32>(width, height);
 
-      // スレッド数
-      int threadCount = Environment.ProcessorCount;
-
       // スレッドごとの処理範囲
-      int range = height / threadCount;
+      int range = height / Environment.ProcessorCount;
 
       // スレッドごとに処理を開始する
-      Thread[] threads = new Thread[threadCount];
-      for (int i = 0; i < threadCount; i++)
+      var tasks = new Task[Environment.ProcessorCount];
+      for (int i = 0; i < tasks.Length; i++)
       {
         int start = i * range;
-        int end = (i == threadCount - 1) ? height : start + range;
-        threads[i] = new Thread(() =>
+        int end = (i == tasks.Length - 1) ? height : start + range;
+        tasks[i] = Task.Run(() =>
         {
           for (int py = start; py < end; py++)
           {
@@ -125,14 +122,10 @@ internal static class Program
             }
           }
         });
-        threads[i].Start();
       }
 
       // スレッドの終了を待つ
-      foreach (Thread thread in threads)
-      {
-        thread.Join();
-      }
+      Task.WaitAll(tasks);
 
       image.Save(output_path);
 
